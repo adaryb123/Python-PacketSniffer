@@ -1,6 +1,26 @@
 from scapy.all import *
 import struct
 
+def make_hex_output(bytes):
+    hex = bytes_hex(bytes).decode()
+    output = ""
+    for i in range(0,len(hex),2):
+        output =  ' '.join([output,hex[i:i+2]])
+    output += " "
+    output = output[1:]
+
+    string_len = len(output)
+    i = 0
+    while i != string_len:
+        if (i == 18 or (i> 19 and (i+1) % 19 == 0)):
+            if (i == 37 or (i>38 and (i+1) % 38 == 0)):
+               output= output[:i] + "\n" + output[i:]
+            else:
+               output= output[:i] + " " + output[i:]
+            string_len += 1
+        i += 1
+    return output
+
 def transform_to_mac_address(bytes):
     hex = bytes_hex(bytes).decode()
     address = ""
@@ -67,6 +87,7 @@ def main():
     trace = rdpcap("/Users/drnck/Desktop/workspace/zadanie2PKS/vzorky/" + filename + ".pcap")
     for i in range(len(trace)):
         packet = raw(trace[i])
+        hex_output = make_hex_output(packet)
         packet_length = len(packet)
         dest_mac , src_mac ,ethernet_type ,packet = unpack_ethernet_header(packet)
         ethernet_name = determine_ethernet_name(ethernet_type,packet)
@@ -92,7 +113,8 @@ def main():
             print("zdrojová IP adresa: "+ source_ip)
             print("cieľová IP adresa: " + dest_ip)
             print(transport_protocol)
-        
+
+        print(hex_output)
         print("______________________________________________")
    # print(first_packet)
      # print(protocol)
