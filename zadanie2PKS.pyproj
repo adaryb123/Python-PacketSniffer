@@ -21,6 +21,12 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ethernet_module.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="internet_module.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="zadanie2PKS.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
