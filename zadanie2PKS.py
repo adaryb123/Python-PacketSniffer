@@ -1,7 +1,9 @@
 from scapy.all import *
 import struct
-import ethernet_module
-import internet_module
+import ethernet_layer
+import internet_layer
+import transport_layer
+import application_layer
 
 def make_hex_output(bytes):
     output = ""
@@ -18,31 +20,43 @@ def make_hex_output(bytes):
             output += "\n"
     return output
 
+def print_ips_and_max(ip_list):
+    max = 0
+    max_ip = ""
+    print("Zoznam IP adries vysielajucich uzlov: ")
+    for i in ip_list.keys():
+        print(i)
+        if ip_list[i] > max:
+            max = ip_list[i]
+            max_ip = i
+
+    print("Najviac packetov odislo z adresy " + max_ip + " a bolo ich "+ str(max))
+
+
 def main():
-    #filename = input("Enter trace name: ")
-    filename = "trace-20"
-    trace = rdpcap("/Users/drnck/Desktop/workspace/zadanie2PKS/vzorky/" + filename + ".pcap")
+ #filename = input("Enter trace name: ")
+    filename = "trace-2"
+    trace = rdpcap("/Users/drnck/Desktop/workspace/zadanie2PKS/traces/" + filename + ".pcap")
+    ipv4_address_list = {}
     for i in range(len(trace)):
         packet = raw(trace[i])
         hex_output = make_hex_output(packet)
         packet_length = len(packet)
-        dest_mac , src_mac ,ethernet_type_or_length ,packet = ethernet_module.unpack_ethernet_header(packet)
-        ethernet_name = ethernet_module.determine_ethernet_name(ethernet_type_or_length,packet)
+        dest_mac , src_mac ,ethernet_type_or_length ,packet = ethernet_layer.unpack_ethernet_header(packet)
+        ethernet_name = ethernet_layer.determine_ethernet_name(ethernet_type_or_length,packet)
         
         print("rámec "+str(i+1))
-        print("dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
-        print("dĺžka rámca prenášaného po médiu – "+str(packet_length)+" B")            # toto neviem ako
-        #print(aky protokol je? ipv4, ipv6, arp ... )
+ #   print("dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
+ #   print("dĺžka rámca prenášaného po médiu – "+str(packet_length)+" B")            # toto neviem ako
         if ethernet_name == "Ethernet II":
-            internet_protocol = ethernet_module.determine_internet_protocol_by_ethertype(ethernet_type_or_length)
+            internet_protocol = ethernet_layer.determine_internet_protocol_by_ethertype(ethernet_type_or_length)
         else:
-            ethernet_name,lsap,packet = ethernet_module.determine_lsap(packet)    
+            internet_protocol,lsap,packet = ethernet_layer.determine_internet_protocol_by_lsap(packet)    
+            ethernet_name = ethernet_layer.name_ieee_by_lsap(ethernet_name,lsap)
             if ethernet_name == "IEEE 802.3 SNAP":
                 ethernet_type = struct.unpack('! 3x H',packet[:5])              #toto treba otestovat
                 packet = packet[5:]
-                internet_protocol = ethernet_module.determine_internet_protocol_by_ethertype(ethernet_type)
-            else:
-                internet_protocol = ethernet_module.determine_internet_protocol_by_lsap(lsap)   #toto treba doplnit
+                internet_protocol = ethernet_layer.determine_internet_protocol_by_ethertype(ethernet_type)
 
         print(ethernet_name)
         print("Zdrojová MAC adresa: "+src_mac)
@@ -50,13 +64,22 @@ def main():
         print(internet_protocol)
 
         if internet_protocol == "IPv4":
-            transport_protocol,source_ip,dest_ip,packet = internet_module.unpack_ipv4_header(packet)
+            transport_protocol,source_ip,dest_ip,packet = internet_layer.unpack_ipv4_header(packet)
             print("zdrojová IP adresa: "+ source_ip)
             print("cieľová IP adresa: " + dest_ip)
             print(transport_protocol)
 
-        print(hex_output)
+            if source_ip in ipv4_address_list.keys():
+                ipv4_address_list[source_ip] += 1
+            else:
+                ipv4_address_list.update({source_ip : 1})
+
+            if transport_protocol == "TCP":
+                source_port,dest_port,packet = transport_layer.unpack_tcp_header(packet)
+                transport_layer.determine_application_protocol(source_port,dest_port)
+ # print(hex_output)
         print("______________________________________________")
+    print_ips_and_max(ipv4_address_list)
 
 main()
 #for i in range(len(vzorka)):

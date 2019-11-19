@@ -21,10 +21,16 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ethernet_module.py">
+    <Compile Include="application_layer.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="internet_module.py">
+    <Compile Include="ethernet_layer.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="internet_layer.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="transport_layer.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="zadanie2PKS.py" />

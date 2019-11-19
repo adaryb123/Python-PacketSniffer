@@ -1,0 +1,18 @@
+0 Echo Reply
+1 Unassigned
+2 Unassigned
+3 Destination Unreachable
+4 Source Quench
+5 Redirect
+8 Echo
+9 Router Advertisement
+1 $Router Selection
+11Time Exceeded
+12 Parameter Problem
+13 Timestamp
+14 Timestamp Reply
+15 Information Request
+16 Information Reply
+17 Address Mask Request
+18 Address Mask Reply
+30 Traceroute

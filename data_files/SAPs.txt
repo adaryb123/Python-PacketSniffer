@@ -1,0 +1,28 @@
+0 Null LSAP
+2 Individual LLC Sublayer Mgt
+4 SNA Path Control
+6 Reserved for DoD IP
+14 ProWay-LAN
+24 Texas Instruments
+66 IEEE 802.1 Bridge Spanning Tree Protocol
+78 EIA-RS 511
+94 ISI IP
+126 ISO 8208 
+128 Xerox Network Systems (XNS)[3]
+130 BACnet/Ethernet
+134 Nestar
+142 ProWay-LAN 
+152 ARPANET Address Resolution Protocol (ARP)
+166 RDE 
+170 SNAP Extension Used
+188 Banyan Vines
+224 Novell NetWare (IPX)
+240 IBM NetBIOS
+244 IBM LAN Management 
+248 IBM Remote Program Load 
+250 Ungermann-Bass
+254 OSI protocols ISO CLNS IS 8473
+3 Group LLC Sublayer Mgt
+5 SNA Path Control 
+245 IBM LAN Management 
+255 Global DSAP 
