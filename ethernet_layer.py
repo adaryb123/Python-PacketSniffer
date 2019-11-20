@@ -1,4 +1,5 @@
 import struct
+import file_reader
 
 def transform_to_mac_address(bytes):
     address = ""
@@ -20,27 +21,12 @@ def unpack_ethernet_header(packet):
     dest_mac_bytes , src_mac_bytes ,ethernet_type_or_length = struct.unpack('! 6s 6s H',packet[:14])
     return transform_to_mac_address(dest_mac_bytes), transform_to_mac_address(src_mac_bytes),ethernet_type_or_length,packet[14:]
 
-def determine_internet_protocol_by_ethertype(ethertype):              
-    with open('data_files/EtherTypes.txt') as data_file:
-        line = data_file.readline()
-        data_length = len(str(ethertype))
-        while line != "":
-          if line[:data_length] == str(ethertype):
-              return line[data_length+1:-1]
-          line = data_file.readline()
-
-    return "other internet protocol"
-
+def determine_internet_protocol_by_ethertype(ethertype):      
+    return file_reader.read_data_file("EtherTypes",ethertype,"other internet protocol")
+   
 def determine_internet_protocol_by_lsap(packet):
     lsap = packet[0]
-    with open('data_files/SAPs.txt') as data_file:
-        line = data_file.readline()
-        data_length = len(str(lsap))
-        while line != "":
-          if line[:data_length] == str(lsap):
-              return line[data_length+1:-1],lsap,packet[3:]
-          line = data_file.readline()
-    return "other internet protocol",lsap,packet[3:]
+    return file_reader.read_data_file("SAPs",lsap,"other internet protocol"),lsap,packet[3:]
 
 
 def name_ieee_by_lsap(ether_name,lsap):

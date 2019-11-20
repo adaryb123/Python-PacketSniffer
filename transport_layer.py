@@ -1,4 +1,5 @@
 import struct
+import file_reader
 
 def get_offset(bytes):
     return (bytes >> 12) * 4
@@ -14,12 +15,27 @@ def unpack_udp_header(packet):
     return source_port,dest_port,packet[8:]
 
 
-def determine_application_protocol(source_port,dest_port):
-    if source_port > 1080 and dest_port <= 1080:
-        print("Hladame podla dest_portu "+ str(dest_port))      #dalej nacitat zo subora
-    elif dest_port > 1080 and source_port <= 1080:
-        print("Hladame podla source_portu "+ str(source_port))
+def determine_application_protocol_for_tcp(source_port,dest_port):
+    if source_port <= dest_port:
+        port = source_port
     else:
-        print("obidve cisla vyhovuju - WTF?")
-        print(str(source_port))
-        print(str(dest_port))
+        port = dest_port
+
+    return file_reader.read_data_file("TCP ports",port,"other application protocol")
+
+
+def determine_application_protocol_for_udp(source_port,dest_port):
+    if source_port <= dest_port:
+        port = source_port
+    else:
+        port = dest_port
+
+    return file_reader.read_data_file("UDP ports",port,"other application protocol")
+
+
+def unpack_icmp_header(packet):
+    type = struct.unpack('! B',packet[:1])
+    return determine_icmp_message(type),packet[4:]
+
+def determine_icmp_message(type):
+    return file_reader.read_data_file("ICM types",type,"other ICM type")

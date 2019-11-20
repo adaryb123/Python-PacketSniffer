@@ -3,7 +3,6 @@ import struct
 import ethernet_layer
 import internet_layer
 import transport_layer
-import application_layer
 
 def make_hex_output(bytes):
     output = ""
@@ -76,7 +75,24 @@ def main():
 
             if transport_protocol == "TCP":
                 source_port,dest_port,packet = transport_layer.unpack_tcp_header(packet)
-                transport_layer.determine_application_protocol(source_port,dest_port)
+                application_protocol = transport_layer.determine_application_protocol_for_tcp(source_port,dest_port)
+                print(application_protocol)
+            elif transport_protocol == "UDP":
+                source_port,dest_port,packet = transport_layer.unpack_udp_header(packet)
+                application_protocol = transport_layer.determine_application_protocol_for_udp(source_port,dest_port)
+                print(application_protocol)
+            elif transport_protocol == "ICMP":
+                icmp_message,packet = transport_layer.unpack_icmp_header(packet)
+                print(icmp_message)
+
+        elif internet_protocol == "ARP":
+            type,source_mac,source_ip,dest_mac,dest_ip,packet = internet_layer.unpack_arp_header(packet)
+            print(type)
+            print("zdrojová IP adresa: "+ source_ip)
+            print("cieľová IP adresa: " + dest_ip)
+            print("Zdrojová MAC adresa: "+src_mac)
+            print("Cieľová MAC adresa: "+dest_mac)
+
  # print(hex_output)
         print("______________________________________________")
     print_ips_and_max(ipv4_address_list)
