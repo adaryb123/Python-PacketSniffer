@@ -1,13 +1,21 @@
 import struct
 import file_reader
 
-def get_offset(bytes):
-    return (bytes >> 12) * 4
+def get_offset_and_flags(bytes):
+   offset = (bytes >> 12) * 4
+   flags = bytes & 63
+   flag_u = (flags >> 5) & 1
+   flag_a = (flags >> 4) & 1
+   flag_p = (flags >> 3) & 1
+   flag_r = (flags >> 2) & 1
+   flag_s = (flags >> 1) & 1
+   flag_f = flags & 1
+   return offset,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f
 
 def unpack_tcp_header(packet):
     source_port,dest_port,offset_reserved_flags = struct.unpack('! H H 8x H', packet[:14])
-    offset = get_offset(offset_reserved_flags)
-    return source_port,dest_port,packet[offset:]
+    offset,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f = get_offset_and_flags(offset_reserved_flags)
+    return source_port,dest_port,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f,packet[offset:]
 
 
 def unpack_udp_header(packet):
@@ -24,7 +32,7 @@ def determine_application_protocol_for_tcp(source_port,dest_port):
     return file_reader.read_data_file("TCP ports",port,"other application protocol")
 
 
-def determine_application_protocol_for_udp(source_port,dest_port):
+def determine_application_protocol_for_udp(source_port,dest_port):                      #toto by slo zlucit do jednej s predoslou
     if source_port <= dest_port:
         port = source_port
     else:
