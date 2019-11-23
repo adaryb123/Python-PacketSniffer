@@ -12,15 +12,15 @@ def get_offset_and_flags(bytes):
    flag_f = flags & 1
    return offset,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f
 
-def unpack_tcp_header(packet):
-    source_port,dest_port,offset_reserved_flags = struct.unpack('! H H 8x H', packet[:14])
+def unpack_tcp_header(bytes):
+    source_port,dest_port,offset_reserved_flags = struct.unpack('! H H 8x H', bytes[:14])
     offset,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f = get_offset_and_flags(offset_reserved_flags)
-    return source_port,dest_port,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f,packet[offset:]
+    return source_port,dest_port,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f,bytes[offset:]
 
 
-def unpack_udp_header(packet):
-    source_port,dest_port = struct.unpack('! H H ',packet[:4])
-    return source_port,dest_port,packet[8:]
+def unpack_udp_header(bytes):
+    source_port,dest_port = struct.unpack('! H H ',bytes[:4])
+    return source_port,dest_port,bytes[8:]
 
 
 def determine_application_protocol_for_tcp(source_port,dest_port):
@@ -41,9 +41,9 @@ def determine_application_protocol_for_udp(source_port,dest_port):              
     return file_reader.read_data_file("UDP ports",port,"other application protocol")
 
 
-def unpack_icmp_header(packet):
-    type = struct.unpack('! B',packet[:1])
-    return determine_icmp_message(type),packet[4:]
+def unpack_icmp_header(bytes):
+    type = struct.unpack('! B',bytes[:1])
+    return determine_icmp_message(type),bytes[4:]
 
 def determine_icmp_message(type):
     return file_reader.read_data_file("ICM types",type,"other ICM type")
