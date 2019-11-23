@@ -23,11 +23,11 @@ def unpack_ipv4_header(bytes):
 def unpack_arp_header(bytes):
     type,source_mac,source_ip,dest_mac,dest_ip = struct.unpack('! 6x H 6s 4s 6s 4s',bytes[:28])
     if type==1:
-        type = "request"
+        type = "REQUEST"
         dest_mac = "?"
 
     elif type==2:
-        type = "reply"
+        type = "REPLY"
         dest_mac =  ethernet_layer.transform_to_mac_address(dest_mac)
 
     source_mac = ethernet_layer.transform_to_mac_address(source_mac)
