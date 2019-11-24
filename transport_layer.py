@@ -29,7 +29,7 @@ def determine_application_protocol_for_tcp(source_port,dest_port):
     else:
         port = dest_port
 
-    return file_reader.read_data_file("TCP ports",port,"other application protocol")
+    return file_reader.read_data_file("TCP ports",port,"unknown application protocol")
 
 
 def determine_application_protocol_for_udp(source_port,dest_port):                      #toto by slo zlucit do jednej s predoslou
@@ -38,7 +38,7 @@ def determine_application_protocol_for_udp(source_port,dest_port):              
     else:
         port = dest_port
 
-    return file_reader.read_data_file("UDP ports",port,"other application protocol")
+    return file_reader.read_data_file("UDP ports",port,"unknown application protocol")
 
 
 def unpack_icmp_header(bytes):
@@ -46,4 +46,4 @@ def unpack_icmp_header(bytes):
     return determine_icmp_message(type),bytes[4:]
 
 def determine_icmp_message(type):
-    return file_reader.read_data_file("ICM types",type,"other ICM type")
+    return file_reader.read_data_file("ICM types",type,"unknown ICM type")

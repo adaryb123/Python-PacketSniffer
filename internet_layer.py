@@ -9,7 +9,7 @@ def transform_to_ip_address(bytes):
    return address[:-1]
 
 def determine_transport_protocol(protocol):       
-     return file_reader.read_data_file("IP protocols",protocol,"other transport protocol")
+     return file_reader.read_data_file("IP protocols",protocol,"unknown transport protocol")
 
 def get_header_length(bytes):
    return (bytes & 15) * 4

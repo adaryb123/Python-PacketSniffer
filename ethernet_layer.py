@@ -22,11 +22,11 @@ def unpack_ethernet_header(bytes):
     return transform_to_mac_address(dest_mac_bytes), transform_to_mac_address(src_mac_bytes),ethernet_type_or_length,bytes[14:]
 
 def determine_internet_protocol_by_ethertype(ethertype):      
-    return file_reader.read_data_file("EtherTypes",ethertype,"other internet protocol")
+    return file_reader.read_data_file("EtherTypes",ethertype,"unknown internet protocol")
    
 def determine_internet_protocol_by_lsap(bytes):
     lsap = bytes[0]
-    return file_reader.read_data_file("SAPs",lsap,"other internet protocol"),lsap,bytes[3:]
+    return file_reader.read_data_file("SAPs",lsap,"unknown internet protocol"),lsap,bytes[3:]
 
 
 def name_ieee_by_lsap(ether_name,lsap):
