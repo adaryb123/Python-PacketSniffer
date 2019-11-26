@@ -4,6 +4,27 @@ import ethernet_layer
 import internet_layer
 import transport_layer
 
+def print_general_data(packet,packet_number,ethernet_name,source_mac,dest_mac,internet_protocol, source_ip = None, dest_ip = None , transport_protocol = None, source_port = None, dest_port = None, application_protocol = None):
+        packet_length = len(packet)    
+        hex_output = make_hex_output(packet)
+        print("Rámec "+str(packet_number))
+        print("Dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
+        print("Dĺžka rámca prenášaného po médiu – "+str(max(packet_length +4,64))+" B")             
+        print(ethernet_name)
+        print("Zdrojová MAC adresa: "+source_mac)
+        print("Cieľová MAC adresa: "+dest_mac)
+        print(internet_protocol)
+        if source_ip != None:
+            print("Zdrojová IP adresa: "+ source_ip)
+            print("Cieľová IP adresa: " + dest_ip)
+            if transport_protocol != None:
+                print(transport_protocol)
+                if transport_protocol == "TCP" or transport_protocol == "UDP":
+                    print("Zdrojový port: "+str(source_port))
+                    print("Cieľový port: " +str(dest_port))
+                    print(application_protocol)
+        print(hex_output)
+
 def make_hex_output(bytes):
     output = ""
     for i in range(len(bytes)):
@@ -36,24 +57,10 @@ def print_all_packets(trace):
     ipv4_address_list = {}
     for i in range(len(trace)):
         packet = raw(trace[i])
-        hex_output = make_hex_output(packet)
-        packet_length = len(packet)
-        remaining_bytes = packet
-
-        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(remaining_bytes)
-        print("rámec "+str(i+1))
-        print("dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
-        print("dĺžka rámca prenášaného po médiu – "+str(packet_length +4)+" B")            # toto neviem ako
-        print(ethernet_name)
-        print("Zdrojová MAC adresa: "+src_mac)
-        print("Cieľová MAC adresa: "+dest_mac)
-        print(internet_protocol)
+        dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
 
         if internet_protocol == "IPv4":
             transport_protocol,source_ip,dest_ip,remaining_bytes = internet_layer.unpack_ipv4_header(remaining_bytes)
-            print("zdrojová IP adresa: "+ source_ip)
-            print("cieľová IP adresa: " + dest_ip)
-            print(transport_protocol)
 
             if source_ip in ipv4_address_list.keys():
                 ipv4_address_list[source_ip] += 1
@@ -63,18 +70,17 @@ def print_all_packets(trace):
             if transport_protocol == "TCP":
                 source_port,dest_port,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f,remaining_bytes = transport_layer.unpack_tcp_header(remaining_bytes)
                 application_protocol = transport_layer.determine_application_protocol_for_tcp(source_port,dest_port)
-                print("zdrojový port: "+str(source_port))
-                print("cieľový port: " +str(dest_port))
-                print(application_protocol)
+                print_general_data(packet,i+1,ethernet_name,source_mac,dest_mac,internet_protocol, source_ip , dest_ip , transport_protocol , source_port , dest_port , application_protocol)
             elif transport_protocol == "UDP":
                 source_port,dest_port,remaining_bytes = transport_layer.unpack_udp_header(remaining_bytes)
                 application_protocol = transport_layer.determine_application_protocol_for_udp(source_port,dest_port)
-                print("zdrojový port: "+str(source_port))
-                print("cieľový port: " +str(dest_port))
-                print(application_protocol)
-
-        print(hex_output)
+                print_general_data(packet,i+1,ethernet_name,source_mac,dest_mac,internet_protocol, source_ip , dest_ip , transport_protocol , source_port , dest_port , application_protocol)
+            else:
+                print_general_data(packet,i+1,ethernet_name,source_mac,dest_mac,internet_protocol, source_ip , dest_ip , transport_protocol)
+        else:
+            print_general_data(packet,i+1,ethernet_name,source_mac,dest_mac,internet_protocol)
         print("______________________________________________")
+
     print_ips_and_max(ipv4_address_list)
 
 #________________________________________________________________________________________________________________________________________________________________
@@ -88,8 +94,8 @@ def shorten_communication(communication):
 def test_communication(complete_exists,incomplete_exists,whole_communication):
     is_complete = 0
     for i in whole_communication:
-        remaining_bytes = i[0]
-        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(remaining_bytes)
+        packet = i[0]
+        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
         transport_protocol,source_ip,dest_ip,remaining_bytes = internet_layer.unpack_ipv4_header(remaining_bytes)
         source_port,dest_port,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f,remaining_bytes = transport_layer.unpack_tcp_header(remaining_bytes)
         application_protocol = transport_layer.determine_application_protocol_for_tcp(source_port,dest_port)
@@ -97,49 +103,26 @@ def test_communication(complete_exists,incomplete_exists,whole_communication):
         if flag_f == 1 or flag_r == 1:
             is_complete +=1
 
-    if is_complete < 2:
+    if is_complete == 0:
         return complete_exists,1
-    elif is_complete >= 2:
+    elif is_complete > 0:
         return 1,incomplete_exists
 
-def print_communication(complete_exists,incomplete_exists,whole_communication):
-    is_complete = 0
+def print_communication(is_complete,whole_communication):
     for i in whole_communication:
         packet = i[0]
-        hex_output = make_hex_output(packet)
-        packet_length = len(packet)
-        remaining_bytes = i[0]
-        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(remaining_bytes)
+        dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
         transport_protocol,source_ip,dest_ip,remaining_bytes = internet_layer.unpack_ipv4_header(remaining_bytes)
         source_port,dest_port,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f,remaining_bytes = transport_layer.unpack_tcp_header(remaining_bytes)
         application_protocol = transport_layer.determine_application_protocol_for_tcp(source_port,dest_port)
 
-        if flag_f == 1 or flag_r == 1:
-            is_complete +=1
-
-        print("rámec "+str(i[1]))
-        print("dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
-        print("dĺžka rámca prenášaného po médiu – "+str(packet_length+4)+" B")            # toto neviem ako
-        print(ethernet_name)
-        print("Zdrojová MAC adresa: "+src_mac)
-        print("Cieľová MAC adresa: "+dest_mac)
-        print(internet_protocol)
-        print("zdrojová IP adresa: "+ source_ip)
-        print("cieľová IP adresa: " + dest_ip)
-        print(transport_protocol)
-        print("zdrojový port: "+str(source_port))
-        print("cieľový port: " +str(dest_port))
-        print(application_protocol)
-        print(hex_output)
+        print_general_data(packet,i[1],ethernet_name,source_mac,dest_mac,internet_protocol, source_ip , dest_ip , transport_protocol , source_port , dest_port , application_protocol)
         print("______________________________________________")
 
-
-    if is_complete <2 :
+    if is_complete == 0 :
         print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  - Tato komunikacia bola neukoncena \n")
-        return complete_exists,1
     else:
         print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ - Tato komunikacia bola ukoncena \n")
-        return 1,incomplete_exists
 
 def print_first_complete_and_incomplete(all_valid_packets):
     complete_exists = 0
@@ -152,8 +135,8 @@ def print_first_complete_and_incomplete(all_valid_packets):
     recent_packet_number = 0
     whole_communication = []
     for i in all_valid_packets:
-        remaining_bytes = i[0]
-        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(remaining_bytes)
+        packet = i[0]
+        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
         transport_protocol,source_ip,dest_ip,remaining_bytes = internet_layer.unpack_ipv4_header(remaining_bytes)
         source_port,dest_port,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f,remaining_bytes = transport_layer.unpack_tcp_header(remaining_bytes)
         application_protocol = transport_layer.determine_application_protocol_for_tcp(source_port,dest_port)
@@ -170,8 +153,8 @@ def print_first_complete_and_incomplete(all_valid_packets):
             first_communiation_ended = 1
             if complete_exists == 0 and incomplete_exists == 0:     #ak skoncila prva, vypiseme ju
                 whole_communication = shorten_communication(whole_communication)
-                complete_exists,incomplete_exists = print_communication(complete_exists,incomplete_exists,whole_communication)
-
+                complete_exists,incomplete_exists = test_communication(complete_exists,incomplete_exists,whole_communication)
+                print_communication(complete_exists,whole_communication)
                 current_source_mac = src_mac
                 current_dest_mac = dest_mac
                 whole_communication.clear
@@ -181,13 +164,14 @@ def print_first_complete_and_incomplete(all_valid_packets):
                 whole_communication = shorten_communication(whole_communication)
                 complete_exists,incomplete_exists = test_communication(complete_exists,incomplete_exists,whole_communication)
                 if complete_exists == 1 and incomplete_exists == 1:
-                    complete_exists,incomplete_exists = print_communication(complete_exists,incomplete_exists,whole_communication)
+                    print_communication(complete_exists,whole_communication)
                     break
     
     if first_communiation_ended == 0:    #toto nastane ak bol cely subor iba jedna komunikacia, alebo ziadna
         if len(whole_communication ) > 0:
              whole_communication = shorten_communication(whole_communication)
-             complete_exists,incomplete_exists = print_communication(complete_exists,incomplete_exists,whole_communication)
+             complete_exists,incomplete_exists = test_communication(complete_exists,incomplete_exists,whole_communication)
+             print_communication(complete_exists,whole_communication)
 
     if complete_exists == 0 :
         print("\nUkoncena komunikacia neexistuje")
@@ -200,44 +184,22 @@ def print_matching_arps(requests,replies):
     matches_num = 0
     while (len(requests) > 0) and (len(replies) > 0):
         for i in requests:
-            packet = i[0]
-            hex_output1 = make_hex_output(packet)
-            packet_length1 = len(packet)
-            dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
+            packet1 = i[0]
+            dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet1)
             type,request_source_mac,request_source_ip,request_dest_mac,request_dest_ip,remaining_bytes = internet_layer.unpack_arp_header(remaining_bytes)
             for j in replies:
-                packet = j[0]
-                hex_output2 = make_hex_output(packet)
-                packet_length2 = len(packet)
-                dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
+                packet2 = j[0]
+                dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet2)
                 type,reply_source_mac,reply_source_ip,reply_dest_mac,reply_dest_ip,remaining_bytes = internet_layer.unpack_arp_header(remaining_bytes)
 
                 if (request_source_mac == reply_dest_mac and request_source_ip == reply_dest_ip and request_dest_ip == reply_source_ip):
                     matches_num += 1;
                     print("Komunikácia "+str(matches_num))
                     print("ARP-REQUEST")
-                    print("rámec "+str(i[1]))
-                    print("dĺžka rámca poskytnutá pcap API – "+str(packet_length1)+" B")
-                    print("dĺžka rámca prenášaného po médiu – "+str(packet_length1+4)+" B")            # toto neviem ako
-                    print(ethernet_name)
-                    print(internet_protocol)
-                    print("Zdrojová MAC adresa: "+request_source_mac)
-                    print("zdrojová IP adresa: "+ request_source_ip)
-                    print("cieľová IP adresa: " + request_dest_ip)
-                    print("Cieľová MAC adresa: "+ request_dest_mac)
-                    print(hex_output1)
+                    print_general_data(packet1,i[1],ethernet_name,request_source_mac,request_dest_mac,internet_protocol, request_source_ip , request_dest_ip)
                     print("")
                     print("ARP-REPLY")
-                    print("rámec "+str(j[1]))
-                    print("dĺžka rámca poskytnutá pcap API – "+str(packet_length2)+" B")
-                    print("dĺžka rámca prenášaného po médiu – "+str(packet_length2+4)+" B")            # toto neviem ako
-                    print(ethernet_name)
-                    print(internet_protocol)
-                    print("Zdrojová MAC adresa: "+reply_source_mac)
-                    print("zdrojová IP adresa: "+ reply_source_ip)
-                    print("cieľová IP adresa: " + reply_dest_ip)
-                    print("Cieľová MAC adresa: "+ reply_dest_mac)
-                    print(hex_output2)
+                    print_general_data(packet2,i[1],ethernet_name,reply_source_mac,reply_dest_mac,internet_protocol, reply_source_ip , reply_dest_ip)
                     print("__________________________________________________")
 
                     requests.remove(i)
@@ -245,104 +207,50 @@ def print_matching_arps(requests,replies):
                     break
     
     if len(requests) > 0 :
-            print("\n\nREQUESTS WIHOUT REPLY:")
+            print("\nREQUESTS WIHOUT REPLY:\n")
             for i in requests:
                 packet = i[0]
-                hex_output = make_hex_output(packet)
-                packet_length = len(packet)
-                dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
+                dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
                 type,request_source_mac,request_source_ip,request_dest_mac,request_dest_ip,remaining_bytes = internet_layer.unpack_arp_header(remaining_bytes)
                 print("ARP-REQUEST")
-                print("rámec "+str(i[1]))
-                print("dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
-                print("dĺžka rámca prenášaného po médiu – "+str(packet_length+4)+" B")            # toto neviem ako
-                print(ethernet_name)
-                print(internet_protocol)
-                print("Zdrojová MAC adresa: "+request_source_mac)
-                print("zdrojová IP adresa: "+ request_source_ip)
-                print("cieľová IP adresa: " + request_dest_ip)
-                print("Cieľová MAC adresa: "+ request_dest_mac)
-                print(hex_output)
+                print_general_data(packet,i[1],ethernet_name,request_source_mac,request_dest_mac,internet_protocol, request_source_ip , request_dest_ip)
                 print("__________________________________________________")
 
     if len(replies) > 0 :
-            print("\n\nREPLIES WITHOUT REQUEST:")
+            print("\nREPLIES WITHOUT REQUEST:\n")
             for i in replies:
                 packet = i[0]
-                hex_output = make_hex_output(packet)
-                packet_length = len(packet)
-                dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
+                dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
                 type,reply_source_mac,reply_source_ip,reply_dest_mac,reply_dest_ip,remaining_bytes = internet_layer.unpack_arp_header(remaining_bytes)
                 print("ARP-REPLY")
-                print("rámec "+str(i[1]))
-                print("dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
-                print("dĺžka rámca prenášaného po médiu – "+str(packet_length+4)+" B")            # toto neviem ako
-                print(ethernet_name)
-                print(internet_protocol)
-                print("Zdrojová MAC adresa: "+reply_source_mac)
-                print("zdrojová IP adresa: "+ reply_source_ip)
-                print("cieľová IP adresa: " + reply_dest_ip)
-                print("Cieľová MAC adresa: "+ reply_dest_mac)
-                print(hex_output)
+                print_general_data(packet1,i[1],ethernet_name,request_source_mac,request_dest_mac,internet_protocol, request_source_ip , request_dest_ip)
                 print("__________________________________________________")
 
 #________________________________________________________________________________________________________________________________________________________________
 
-def print_all_tftp(all_valid_packets):
+def print_all_tftp(all_valid_packets):                  #neviem ci mi zachytava vsetky tftp
     for i in all_valid_packets:
         packet = i[0]
-        hex_output = make_hex_output(packet)
-        packet_length = len(packet)
-        remaining_bytes = i[0]
-        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(remaining_bytes)
+        dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
         transport_protocol,source_ip,dest_ip,remaining_bytes = internet_layer.unpack_ipv4_header(remaining_bytes)
         source_port,dest_port,remaining_bytes = transport_layer.unpack_udp_header(remaining_bytes)
         application_protocol = transport_layer.determine_application_protocol_for_udp(source_port,dest_port)
         if application_protocol == "unknown application protocol":
             application_protocol = "TFTP-pokracovanie"
-        print("rámec "+str(i[1]))
-        print("dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
-        print("dĺžka rámca prenášaného po médiu – "+str(packet_length+4)+" B")            # toto neviem ako
-        print(ethernet_name)
-        print("Zdrojová MAC adresa: "+src_mac)
-        print("Cieľová MAC adresa: "+dest_mac)
-        print(internet_protocol)
-        print("zdrojová IP adresa: "+ source_ip)
-        print("cieľová IP adresa: " + dest_ip)
-        print(transport_protocol)
-        print("zdrojový port: "+str(source_port))
-        print("cieľový port: " +str(dest_port))
-        print(application_protocol)
-        print(hex_output)
+        print_general_data(packet,i[1],ethernet_name,source_mac,dest_mac,internet_protocol, source_ip , dest_ip , transport_protocol , source_port , dest_port , application_protocol)
         print("______________________________________________")
-
 #________________________________________________________________________________________________________________________________________________________________
 
-def print_all_icmp(all_valid_packets):
+def print_all_icmp(all_valid_packets):      #treba zdruzovat
     for i in all_valid_packets:
         packet = i[0]
-        hex_output = make_hex_output(packet)
-        packet_length = len(packet)
-        remaining_bytes = i[0]
-
-        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(remaining_bytes)
+        dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
         transport_protocol,source_ip,dest_ip,remaining_bytes = internet_layer.unpack_ipv4_header(remaining_bytes)
         icmp_message,remaining_bytes = transport_layer.unpack_icmp_header(remaining_bytes)
 
-        print("rámec "+str(i+1))
-        print("dĺžka rámca poskytnutá pcap API – "+str(packet_length)+" B")
-        print("dĺžka rámca prenášaného po médiu – "+str(packet_length+4)+" B")            # toto neviem ako
-        print(ethernet_name)
-        print("Zdrojová MAC adresa: "+src_mac)
-        print("Cieľová MAC adresa: "+dest_mac)
-        print(internet_protocol)
-        print("zdrojová IP adresa: "+ source_ip)
-        print("cieľová IP adresa: " + dest_ip)
-        print(transport_protocol)
         print("správa: " + icmp_message)
-        print(hex_output)
+        print_general_data(packet,i[1],ethernet_name,source_mac,dest_mac,internet_protocol, source_ip , dest_ip , transport_protocol)
         print("______________________________________________")
-
 #________________________________________________________________________________________________________________________________________________________________
 
 
@@ -356,9 +264,7 @@ def filter_packets(trace,requested_protocol):
      tftp = 0
      for i in range(len(trace)):
         packet = raw(trace[i])
-        remaining_bytes = packet
-
-        dest_mac , src_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(remaining_bytes)
+        dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
         if requested_protocol == internet_protocol: #ARP
                 matches_number +=1
                 type,source_mac,source_ip,dest_mac,dest_ip,remaining_bytes = internet_layer.unpack_arp_header(remaining_bytes)
@@ -411,7 +317,7 @@ def filter_packets(trace,requested_protocol):
 
 def main():
     while True:
-        try:
+        #try:
             filename = input("Zadajte nazov .pcap suboru ulozeneho v /traces : ")
             trace = rdpcap("/Users/drnck/Desktop/workspace/zadanie2PKS/traces/" + filename + ".pcap")
             print("Ak chcete vypisat vsetky ramce, zadajte 1")
@@ -430,7 +336,7 @@ def main():
             again = input("Chcete pokracovat? A/N:  ")
             if again == "N":
                 break
-        except:
-            print("\nSubor s takymto menom neexistuje. Skontrolujte, ci sa nachadza v  priecinku /traces, a napiste ho bez pripony\n")
+        #except:
+            #print("\nSubor s takymto menom neexistuje. Skontrolujte, ci sa nachadza v  priecinku /traces, a napiste ho bez pripony\n")
 main()
 
