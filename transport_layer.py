@@ -37,13 +37,12 @@ def determine_application_protocol_for_udp(source_port,dest_port):              
         port = source_port
     else:
         port = dest_port
-
     return file_reader.read_data_file("UDP ports",port,"unknown application protocol")
 
 
 def unpack_icmp_header(bytes):
     type = struct.unpack('! B',bytes[:1])
-    return determine_icmp_message(type),bytes[4:]
+    return determine_icmp_message(type[0]),bytes[4:]
 
 def determine_icmp_message(type):
     return file_reader.read_data_file("ICM types",type,"unknown ICM type")

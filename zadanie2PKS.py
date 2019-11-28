@@ -52,6 +52,27 @@ def print_ips_and_max(ip_list):
 
     print("Najviac packetov odislo z adresy " + max_ip + " a bolo ich "+ str(max))
 
+def check_if_protocol_name_is_valid(protocol_name):
+    if protocol_name == "HTTP":
+        return 1
+    elif protocol_name == "HTTPS":
+        return 1
+    elif protocol_name == "SSH":
+        return 1
+    elif protocol_name == "TELNET":
+        return 1
+    elif protocol_name == "FTP-DATA":
+        return 1
+    elif protocol_name == "FTP-CONTROL":
+        return 1
+    elif protocol_name == "TFTP":
+        return 1
+    elif protocol_name == "ICMP":
+        return 1
+    elif protocol_name == "ARP":
+        return 1
+    else:
+        return 0
 
 def print_all_packets(trace):
     ipv4_address_list = {}
@@ -228,28 +249,54 @@ def print_matching_arps(requests,replies):
 
 #________________________________________________________________________________________________________________________________________________________________
 
-def print_all_tftp(all_valid_packets):                  #neviem ci mi zachytava vsetky tftp
+def print_all_tftp(all_valid_packets):                 
+    current_source_ip = ""
+    current_dest_ip = ""
     for i in all_valid_packets:
         packet = i[0]
         dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
         transport_protocol,source_ip,dest_ip,remaining_bytes = internet_layer.unpack_ipv4_header(remaining_bytes)
         source_port,dest_port,remaining_bytes = transport_layer.unpack_udp_header(remaining_bytes)
         application_protocol = transport_layer.determine_application_protocol_for_udp(source_port,dest_port)
+
         if application_protocol == "unknown application protocol":
             application_protocol = "TFTP-pokracovanie"
+
+        if current_source_ip == "" and current_dest_ip == "":
+            current_source_ip = source_ip
+            current_dest_ip = dest_ip
+            print("JEDNA KOMUNIKACIA\n")
+        elif ((source_ip == current_source_ip and dest_ip == current_dest_ip ) or (dest_ip == current_source_ip and source_ip == current_dest_ip )) == False:
+            print("KONIEC KOMUNIKACIE\n")
+            print("DALSIA KOMUNIKACIA\n")
+            current_source_ip = source_ip
+            current_dest_ip = dest_ip
+
         print_general_data(packet,i[1],ethernet_name,source_mac,dest_mac,internet_protocol, source_ip , dest_ip , transport_protocol , source_port , dest_port , application_protocol)
         print("______________________________________________")
 #________________________________________________________________________________________________________________________________________________________________
 
-def print_all_icmp(all_valid_packets):      #treba zdruzovat
+def print_all_icmp(all_valid_packets):     
+    current_source_ip = ""
+    current_dest_ip = ""
     for i in all_valid_packets:
         packet = i[0]
         dest_mac , source_mac,ethernet_name,internet_protocol,remaining_bytes = ethernet_layer.fully_analyze_ethernet(packet)
         transport_protocol,source_ip,dest_ip,remaining_bytes = internet_layer.unpack_ipv4_header(remaining_bytes)
         icmp_message,remaining_bytes = transport_layer.unpack_icmp_header(remaining_bytes)
 
-        print("správa: " + icmp_message)
+        if current_source_ip == "" and current_dest_ip == "":
+            current_source_ip = source_ip
+            current_dest_ip = dest_ip
+            print("JEDNA KOMUNIKACIA\n")
+        elif ((source_ip == current_source_ip and dest_ip == current_dest_ip ) or (dest_ip == current_source_ip and source_ip == current_dest_ip )) == False:
+            print("KONIEC KOMUNIKACIE\n")
+            print("DALSIA KOMUNIKACIA\n")
+            current_source_ip = source_ip
+            current_dest_ip = dest_ip
+
         print_general_data(packet,i[1],ethernet_name,source_mac,dest_mac,internet_protocol, source_ip , dest_ip , transport_protocol)
+        print("správa: " + icmp_message)
         print("______________________________________________")
 #________________________________________________________________________________________________________________________________________________________________
 
@@ -281,16 +328,16 @@ def filter_packets(trace,requested_protocol):
                     application_protocol = ""
                     if transport_protocol == "UDP":
                         source_port,dest_port,remaining_bytes = transport_layer.unpack_udp_header(remaining_bytes)
-                        application_protocol = transport_layer.determine_application_protocol_for_udp(source_port,dest_port)
-                        if application_protocol == "unkown application protocol":  #TFTP  pokracovanie
+                        application_protocol = transport_layer.determine_application_protocol_for_udp(source_port,dest_port)      
+                        if application_protocol == "unknown application protocol":  #TFTP  pokracovanie
                             if (tftp == 1) and (source_port == tftp_source_port or source_port == tftp_dest_port or dest_port == tftp_source_port or dest_port == tftp_dest_port):
-                                all_valid_packets.append([packet,i+1])
+                                all_valid_packets.append([packet,i+1])                          
                                 continue
                     elif transport_protocol == "TCP":
                         source_port,dest_port,flag_u,flag_a,flag_p,flag_r,flag_s,flag_f,remaining_bytes = transport_layer.unpack_tcp_header(remaining_bytes)
                         application_protocol = transport_layer.determine_application_protocol_for_tcp(source_port,dest_port)
                     
-                    if application_protocol == requested_protocol:       
+                    if application_protocol == requested_protocol:    
                         matches_number +=1
                         if requested_protocol == "TFTP":                    
                            tftp_source_port = source_port
@@ -317,9 +364,9 @@ def filter_packets(trace,requested_protocol):
 
 def main():
     while True:
-        #try:
+        try:
             filename = input("Zadajte nazov .pcap suboru ulozeneho v /traces : ")
-            trace = rdpcap("/Users/drnck/Desktop/workspace/zadanie2PKS/traces/" + filename + ".pcap")
+            trace = rdpcap("/Users/drnck/Desktop/workspace/zadanie2PKS/traces/" + filename.lower() + ".pcap")
             print("Ak chcete vypisat vsetky ramce, zadajte 1")
             print("Ak chcete vypisat iba ramce pre specificky protokol, zadajte 2")
             option = input("Vyberte moznost : ")
@@ -328,15 +375,17 @@ def main():
                 print_all_packets(trace)
             elif (option == "2"):
                 protocol_name = input("Zadajte nazov protokolu : ")
-                print("______________________________________________")
-                filter_packets(trace,protocol_name)
+                if check_if_protocol_name_is_valid(protocol_name)==0:
+                    print("Nepovoleny protokol")
+                else:
+                    print("______________________________________________")
+                    filter_packets(trace,protocol_name)
             else:
                 print("Zadali ste nezmysel")
 
             again = input("Chcete pokracovat? A/N:  ")
             if again == "N":
                 break
-        #except:
-            #print("\nSubor s takymto menom neexistuje. Skontrolujte, ci sa nachadza v  priecinku /traces, a napiste ho bez pripony\n")
+        except:
+            print("\nSubor s takymto menom neexistuje. Skontrolujte, ci sa nachadza v  priecinku /traces, a napiste ho bez pripony\n")
 main()
-
