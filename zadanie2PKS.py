@@ -3,6 +3,7 @@ import struct
 import ethernet_layer
 import internet_layer
 import transport_layer
+import sys  # na vystup do subora
 
 def print_general_data(packet,packet_number,ethernet_name,source_mac,dest_mac,internet_protocol, source_ip = None, dest_ip = None , transport_protocol = None, source_port = None, dest_port = None, application_protocol = None):
         packet_length = len(packet)    
@@ -167,7 +168,7 @@ def print_first_complete_and_incomplete(all_valid_packets):
             current_dest_mac = dest_mac
             first_packet_number = i[1]      
 
-        if ((src_mac == current_source_mac and dest_mac == current_dest_mac) or (src_mac == current_dest_mac and dest_mac == current_source_mac)) and ((i[1] == first_packet_number) or (i[1] == recent_packet_number + 1)):
+        if ((src_mac == current_source_mac and dest_mac == current_dest_mac) or (src_mac == current_dest_mac and dest_mac == current_source_mac)): #and ((i[1] == first_packet_number) or (i[1] == recent_packet_number + 1)):
             whole_communication.append(i)
             recent_packet_number = i[1]
         else:       #ak nastane else znamena to ze jedna komunikacia skoncila a nasleduje ina
@@ -371,18 +372,23 @@ def main():
             print("Ak chcete vypisat iba ramce pre specificky protokol, zadajte 2")
             option = input("Vyberte moznost : ")
             if (option == "1"):
+                sys.stdout = open("output.txt", 'w')
                 print("______________________________________________")
                 print_all_packets(trace)
+                sys.stdout.close()
+                sys.stdout = sys.__stdout__
             elif (option == "2"):
                 protocol_name = input("Zadajte nazov protokolu : ")
                 if check_if_protocol_name_is_valid(protocol_name)==0:
                     print("Nepovoleny protokol")
                 else:
+                    sys.stdout = open("output.txt", 'w')
                     print("______________________________________________")
                     filter_packets(trace,protocol_name)
+                    sys.stdout.close()
+                    sys.stdout = sys.__stdout__
             else:
                 print("Zadali ste nezmysel")
-
             again = input("Chcete pokracovat? A/N:  ")
             if again == "N":
                 break
